@@ -1,27 +1,22 @@
 import { ethers } from "hardhat";
+import fs from "fs";
 
-async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const unlockTime = currentTimestampInSeconds + 60;
+const main = async () => {
+  const Blog = await ethers.getContractFactory("Blog");
+  const blog = await Blog.deploy("My blog");
 
-  const lockedAmount = ethers.parseEther("0.001");
-
-  const lock = await ethers.deployContract("Lock", [unlockTime], {
-    value: lockedAmount,
-  });
-
-  await lock.waitForDeployment();
-
-  console.log(
-    `Lock with ${ethers.formatEther(
-      lockedAmount
-    )}ETH and unlock timestamp ${unlockTime} deployed to ${lock.target}`
-  );
+  await blog.deployed();
+  console.log("Blog deployed to:", blog.address);
+  const owner = await blog.signer.getAddress();
+  fs.writeFileSync("./config.ts", `
+  export const contractAddress = "${blog.address}"
+  export const ownerAddress = "${owner}"
+  `);
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+  .then(() => process.exit(0))
+  .catch(error => {
+    console.error(error);
+    process.exit(1);
+  });
